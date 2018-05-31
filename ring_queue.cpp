@@ -1,16 +1,4 @@
-// Description: An incomplete implementation of iterators for a
-//              RingQueue class.
-//
-// Notes: The project DOES compile but there is no meaningful 
-//              output
-//
-// Your job: To complete this set of classes so that the output
-//              produced by 'main' (below), matches the sample
-//              file provided at the end of this file.
-
-
 #include <iostream>
-
 // Forward declaration
 template <typename ItemType, int MAX_SIZE>
 class RingQueue;
