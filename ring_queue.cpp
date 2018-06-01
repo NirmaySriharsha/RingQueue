@@ -1,50 +1,24 @@
 #include <iostream>
-
 // Forward declaration
 template <typename ItemType, int MAX_SIZE>
 class RingQueue;
 
-
-
 template <typename ItemType, int MAX_SIZE>
 class RingQueue{
-    
-    // Nested Forward declaration of RingQueue<ItemType,MAX_SIZE>::iterator
-    // This is needed if one plans to turn this home-made iterator into
-    // one of the special categories of iterators (e.g., input, output,
-    // forward, etc.).
     public: 
         class iterator;
-
-
-
-    // Aliases. 
     typedef ItemType* pointer;
     typedef ItemType& reference;
-
-
-
-    // Definition of RingQueue<ItemType,MAX_SIZE>::iterator
     public:
         class iterator{
             private:
-                // A link to the parent container 
                 RingQueue* parent;
-
-                // The position within the RingQueue is determined
-                // by how far ahead we are from the begining of the
-                // queue.
                 int offset;
 
-            private:  // Private constructor???
+            private:  
                 iterator(RingQueue* _parent, int _offset = 0 )
                   : parent(_parent), offset(_offset) { }
-
-                
-            // It is quite common for Containers and their iterators
-            // to be friends. After all, they should work closely together.
             friend class RingQueue<ItemType,MAX_SIZE>;
-
 
             public:
                 reference operator*() {
@@ -52,32 +26,28 @@ class RingQueue{
                 }
 
                 iterator& operator++(){
-                    this->offset++;
+                    this->offset=(this->offset+1)%MAX_SIZE;
                     return *this;
                 }
 
                 iterator operator++( int unused ){
-                    this->offset+=unused;
                     return *this;
                 }
 
                 bool operator==( const iterator& rhs ) const {
                     if(this->parent==rhs.parent && this->offset==rhs.offset)
                         return true;
-                    else 
+                    else
                         return false;
                 }
 
                 bool operator!=( const iterator& rhs ) const {
                     if (*this==rhs)
                         return false;
-                    return true;
+                    else
+                        return true;
                 }
-
         };
-
-
-
         /**
         class const_iterator{
             private:
@@ -95,83 +65,54 @@ class RingQueue{
             friend class RingQueue<ItemType,MAX_SIZE>;
         };
         */
-
-
-
     // Friendship goes both ways here.
     friend class iterator;
     // friend class const_iterator;  // not implemented... yet.
-
-
-
     private:
-        // A fixed-size static array with constant capacity that represents 
-        // the RingQueue
         ItemType buffer[MAX_SIZE];
-
-        // The starting index. It changes according to a very 
-        // specific set of rules (below).
         int begin_index;
-
-        // The actual size of the RingQueue. Not to be confused with
-        // its capacity. 
         int ring_size;
-
-
-
-        // A helper function that computes the index of 'the end'
-        // of the RingQueue
         int end_index() const {
-            int ending=(begin_index+ring_size)%MAX_SIZE;
-            return ending;
+            int end= (begin_index+ring_size)%MAX_SIZE;
+            return end;
         }
-
-
-
     public: 
-        // Constructor
         RingQueue() : begin_index(0), ring_size(0) { }
 
-        // Accessors. Note: 'back()' is not considered part of the array.
         ItemType front() const { 
             if ( ring_size == 0 ) std::cerr<< "Warning: Empty ring!\n" ;
             return buffer[begin_index];
         }
         ItemType back() const {  
             if ( ring_size == 0 ) std::cerr<< "Warning: Empty ring!\n" ;
-            return buffer[end_index()]; 
+            return buffer[end_index()-1];
         }
+
         void push_back( const ItemType& value ){
             buffer[end_index()]=value;
-            ring_size++;
+            if(begin_index==end_index() && ring_size==MAX_SIZE)
+                begin_index=(begin_index+1)%MAX_SIZE;   //We add %MAX_SIZE to loop it back to 0 if it crosses buffer[ring_size()-1]
+            if(ring_size<MAX_SIZE){
+                ring_size++;
+            }
+            
             return;
         }
         void pop_front(){
-            begin_index++;
+            //Add special case when the ring is only one element (or 0 elements) long. 
+            begin_index=(begin_index+1)%MAX_SIZE;
             ring_size--;
             return;
         }
-
-        size_t return_begin_index() const{
-            return begin_index;
-        }
-        size_t return_end_index() const{
-            return end_index();
-        }
-
-        // Functions that return iterators
         iterator begin() { 
             return iterator(this,begin_index); 
         }
         iterator end() {
             return iterator(this,end_index());
         }
-
         size_t size() const {
             return ring_size;
         }
-
-        // Debugging functions
         void dump_queue() const {
             std::cout << "Raw queue...\n";
             for ( size_t i = 0 ; i < MAX_SIZE ; ++i )
@@ -179,7 +120,12 @@ class RingQueue{
             std::cout << '\n';
             return;
         }
-
+        int return_begin() const{
+            return begin_index;
+        }
+        int return_end() const{
+            return end_index();
+        }
 };
 
 int main(){
@@ -188,17 +134,9 @@ int main(){
 
     for ( int i = 0 ; i < 7 ; ++i )
         rq.push_back(i+1);
-    std::cout<<std::endl<<rq.size();
-    rq.dump_queue();
-    std::cout<<std::endl;
-    std::cout<<rq.size()<<"         "<<rq.return_end_index()<<std::endl;
     rq.push_back(8);
-    std::cout<<std::endl;
     rq.dump_queue();
-
-    /*rq.dump_queue();
     rq.pop_front();
-
     std::cout << "Queue via size: \n";
 
     // RingQueue<int,7>::iterator it = rq.begin() ; 
@@ -208,21 +146,13 @@ int main(){
         ++it;
     }
     std::cout << '\n';
-
-    
-
-    
     std::cout << "Queue via iterators: \n";
     for ( auto it = rq.begin() ; it != rq.end() ; ++it ) {
         std::cout << "Value: " << *it << ", address: " << &(*it) << '\n';
     }
     std::cout << '\n';
-
-
-
     rq.dump_queue();
-
-    return 0;*/
+    return 0;
 }
 
 
