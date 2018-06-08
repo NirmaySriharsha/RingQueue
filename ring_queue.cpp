@@ -1,5 +1,4 @@
 #include <iostream>
-// Forward declaration
 template <typename ItemType, int MAX_SIZE>
 class RingQueue;
 
@@ -13,7 +12,7 @@ class RingQueue{
         class iterator{
             private:
                 RingQueue* parent;
-                int offset;
+                int offset;                                         //Offset determines the location of the iterator in the Queue.
 
             private:  
                 iterator(RingQueue* _parent, int _offset = 0 )
@@ -21,34 +20,35 @@ class RingQueue{
             friend class RingQueue<ItemType,MAX_SIZE>;
 
             public:
-                reference operator*() {
-                    return parent->buffer[offset] ;  
+                reference operator*() {                             //Returns the value stored in the iterator's location. 
+                    return parent->buffer[offset] ;                 
                 }
 
-                iterator& operator++(){
+                iterator& operator++(){                             //Moves the iterator ahead.Pre-fix Operator. 
                     this->offset=(this->offset+1)%MAX_SIZE;
                     return *this;
                 }
 
-                iterator operator++( int unused ){
-                    return *this;
+                iterator operator++( int unused ){                  //Moves the iterator ahead. Post-fix Operator. Therefore, first returns the original value. 
+                    iterator temporary=*this;
+                    this->offset=(this->offset+1)%MAX_SIZE;
+                    return temporary;
                 }
 
                 bool operator==( const iterator& rhs ) const {
-                    if(this->parent==rhs.parent && this->offset==rhs.offset)
+                    if(this->parent==rhs.parent && this->offset==rhs.offset)        //Checks equality of iterators based on whether they are in the same place in the same queue. 
                         return true;
                     else
                         return false;
                 }
 
                 bool operator!=( const iterator& rhs ) const {
-                    if (*this==rhs)
+                    if (*this==rhs)                                                 //Checks inequality by checking equality. 
                         return false;
                     else
                         return true;
                 }
         };
-        /**
         class const_iterator{
             private:
                 RingQueue* parent;
@@ -56,52 +56,81 @@ class RingQueue{
 
             private:
                 // Only RingQueue objects can create const_iterators...
-                const_iterator() ;
+                const_iterator(RingQueue* _parent, int _offset):parent(_parent), offset(_offset){}
 
             public:
                 // ... however, const_iterators can be 'copied'.
-                const_iterator( const const_iterator& ) ;
+                const_iterator( const const_iterator& a){                               //Deep copy. 
+                    this->parent=a.parent;
+                    this->offset=a.offset;
+                }
+                bool operator==( const const_iterator& rhs ) const {
+                    if(this->parent==rhs.parent && this->offset==rhs.offset)            //Checks Equality of const_iterators. 
+                        return true;
+                    else
+                        return false;
+                }
+
+                bool operator!=( const const_iterator& rhs ) const {                   //Checks Inequality by checking Equality. 
+                    if (*this==rhs)
+                        return false;
+                    else
+                        return true;
+                }
+
+                reference operator*() const{                                           //Returns value sored in the location of the const_iterator. 
+                    return parent->buffer[offset];
+                }
 
             friend class RingQueue<ItemType,MAX_SIZE>;
         };
-        */
     // Friendship goes both ways here.
     friend class iterator;
-    // friend class const_iterator;  // not implemented... yet.
+    friend class const_iterator; 
     private:
         ItemType buffer[MAX_SIZE];
         int begin_index;
         int ring_size;
         int end_index() const {
-            int end= (begin_index+ring_size)%MAX_SIZE;
+            int end= (begin_index+ring_size)%MAX_SIZE;                              //begin_index+ring_size takes us to the end of the ring. %MAX_SIZE helps us from "leaving" the ring. 
             return end;
         }
     public: 
-        RingQueue() : begin_index(0), ring_size(0) { }
+        RingQueue() : begin_index(0), ring_size(0) { }                              //The default ring of course starts at 0 and is 0 long. 
 
         ItemType front() const { 
-            if ( ring_size == 0 ) std::cerr<< "Warning: Empty ring!\n" ;
-            return buffer[begin_index];
+            if ( ring_size == 0 ) std::cerr<< "Warning: Empty ring!\n" ;            //Checks if the ring is actually populated. 
+            return buffer[begin_index];                                             //Returns the first element. 
         }
         ItemType back() const {  
-            if ( ring_size == 0 ) std::cerr<< "Warning: Empty ring!\n" ;
-            return buffer[end_index()-1];
+            if ( ring_size == 0 ) std::cerr<< "Warning: Empty ring!\n" ;            //Checks it the ring is actually populated. 
+            return buffer[end_index()-1];                                           //Returns the last element. Due to arrary numbering, we return end_index()-1 instead of end_index().
         }
 
         void push_back( const ItemType& value ){
-            buffer[end_index()]=value;
-            if(begin_index==end_index() && ring_size==MAX_SIZE)
+            buffer[end_index()]=value;                                              //The last populated element of the ring is technically end_index()-1, so to push back we fill end_index()
+            if(begin_index==end_index() && ring_size==MAX_SIZE)                     //Special Case. This pushes the beginning index forwards if the end coincides with the beginning and the ring is already full. 
                 begin_index=(begin_index+1)%MAX_SIZE;   //We add %MAX_SIZE to loop it back to 0 if it crosses buffer[ring_size()-1]
             if(ring_size<MAX_SIZE){
-                ring_size++;
+                ring_size++;                                                        //If ring_size==MAX_SIZE, then we surely cannot increase it even further.
             }
             
             return;
         }
         void pop_front(){
             //Add special case when the ring is only one element (or 0 elements) long. 
-            begin_index=(begin_index+1)%MAX_SIZE;
-            ring_size--;
+            if(ring_size==1)                                                        //Special case. If the ring size is 1, then their is only one element, and popping would create an empty ring. 
+            {               
+                begin_index=0;                                                      //Therefore, we basically reset the ring
+                ring_size=0;                                                        //Since it's now an empty ring, why not make it default?, i.e, make it start at 0?
+                return;
+            }
+            if(ring_size==0)
+            {
+                std::cerr<<"Warning: Empty ring!\n";                                //You can't pop an empty ring!
+            }
+            begin_index=(begin_index+1)%MAX_SIZE;                                   //The beginning has to move ahead obviously, and we take into account "spillage"
+            ring_size--;                                                
             return;
         }
         iterator begin() { 
@@ -125,6 +154,14 @@ class RingQueue{
         }
         int return_end() const{
             return end_index();
+        }
+
+        const_iterator const_begin(){
+            return const_iterator(this, begin_index);
+        }
+
+        const_iterator const_end(){
+            return const_iterator(this, end_index);
         }
 };
 
@@ -152,6 +189,13 @@ int main(){
     }
     std::cout << '\n';
     rq.dump_queue();
+    //Const_iterator stuff: 
+    //auto it1= rq.const_begin();
+    //std::cout<<" Value const iterator : "<<*it1<<" , address : "<<&(*it1)<<'\n';
+    //auto it2(it1);
+    //std::cout<<" Value const : "<<*it2<<" , address  : "<<&(*it2)<<'\n';
+    
+
     return 0;
 }
 
